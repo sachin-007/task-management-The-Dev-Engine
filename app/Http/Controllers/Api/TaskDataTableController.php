@@ -69,7 +69,14 @@ class TaskDataTableController extends Controller
             $filteredRecords = $query->count();
             
             // Apply ordering and pagination
-            $tasks = $query->orderBy($orderColumnName, $orderDir)
+            // If no explicit ordering provided by DataTables, default to newest first
+            if ($request->get('order') === null) {
+                $query->orderBy('created_at', 'desc')->orderBy('order', 'asc');
+            } else {
+                $query->orderBy($orderColumnName, $orderDir);
+            }
+
+            $tasks = $query
                           ->offset($start)
                           ->limit($length)
                           ->get();
@@ -106,8 +113,8 @@ class TaskDataTableController extends Controller
             $page = $request->get('page', 1);
             $perPage = $request->get('per_page', 10);
             
-            // Apply ordering
-            $query->orderBy('order', 'asc');
+            // Apply ordering: newest first
+            $query->orderBy('created_at', 'desc')->orderBy('order', 'asc');
             
             // Get paginated results
             $tasks = $query->paginate($perPage, ['*'], 'page', $page);

@@ -37,10 +37,13 @@ class TaskController extends Controller
 
     public function update(UpdateTaskRequest $request, Task $task)
     {
+        \Log::info("inside te task",[
+            "task" => $task,
+        ]);
         $this->service->update($task, $request->validated());
 
         if ($request->wantsJson() || $request->ajax()) {
-            return response()->json($task);
+            return response()->json($task->fresh());
         }
 
         return redirect()->route('tasks.index')->with('success', 'Task updated.');
@@ -76,6 +79,6 @@ class TaskController extends Controller
         $completed = (bool)$request->input('completed', false);
         $this->service->toggleComplete($task, $completed);
 
-        return response()->json($task);
+        return response()->json($task->fresh());
     }
 }

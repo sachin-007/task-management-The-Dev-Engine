@@ -205,7 +205,8 @@
         pageLength: 10,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
         responsive: true,
-        order: [[0, 'asc']],
+        // Default newest first (backend also enforces created_at desc)
+        order: [[0, 'desc']],
         language: {
             processing: "Loading tasks...",
             emptyTable: "No tasks found",
@@ -306,6 +307,46 @@
         }
     });
 
+    // // Handle form submission (create/update)
+    // $('#task-form').on('submit', async function(e) {
+    //     e.preventDefault();
+        
+    //     const form = $(this);
+    //     const formData = new FormData(this);
+    //     const url = form.attr('action');
+    //     const method = currentEditTaskId ? 'PATCH' : 'POST';
+    //     const taskTitle = form.find('input[name="title"]').val();
+
+    //     console.log('Submitting form to', url, 'with method', method, 'and data', Object.fromEntries(formData.entries()));
+        
+        
+    //     try {
+    //         const response = await fetch(url, {
+    //             method: method,
+    //             headers: {
+    //                 'X-CSRF-TOKEN': csrfToken,
+    //                 'Accept': 'application/json'
+    //             },
+    //             body: formData
+    //         });
+            
+    //         if (response.ok) {
+    //             // Clear form and reset to create mode
+    //             cancelEdit();
+    //             // Refresh table
+    //             table.ajax.reload();
+    //             // Show success message
+    //             showAlert('Task '+ taskTitle +' '+ (currentEditTaskId ? 'updated' : 'created') + ' successfully!', 'success');
+    //         } else {
+    //             const errors = await response.json();
+    //             showAlert('Error: ' + (errors.message || 'Please check your input'), 'danger');
+    //         }
+    //     } catch (error) {
+    //         console.error('Error submitting form:', error);
+    //         showAlert('Error submitting form. Please try again.', 'danger');
+    //     }
+    // });
+
     // Handle form submission (create/update)
     $('#task-form').on('submit', async function(e) {
         e.preventDefault();
@@ -316,15 +357,29 @@
         const method = currentEditTaskId ? 'PATCH' : 'POST';
         const taskTitle = form.find('input[name="title"]').val();
         
+        // Convert FormData to a plain object for use in JSON serialization
+        const data = Object.fromEntries(formData.entries());
+
+        console.log('Submitting form to', url, 'with method', method, 'and data', data);
+        
+        // Initialize fetch options
+        let fetchOptions = {
+            method: method,
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+        };
+
+        if (method === 'PATCH' || method === 'PUT') {
+            fetchOptions.headers['Content-Type'] = 'application/json';
+            fetchOptions.body = JSON.stringify(data);
+        } else {
+            fetchOptions.body = formData;
+        }
+
         try {
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: formData
-            });
+            const response = await fetch(url, fetchOptions);
             
             if (response.ok) {
                 // Clear form and reset to create mode
@@ -335,6 +390,8 @@
                 showAlert('Task '+ taskTitle +' '+ (currentEditTaskId ? 'updated' : 'created') + ' successfully!', 'success');
             } else {
                 const errors = await response.json();
+                // Log the full error response for debugging
+                console.error('Server Error:', errors); 
                 showAlert('Error: ' + (errors.message || 'Please check your input'), 'danger');
             }
         } catch (error) {
